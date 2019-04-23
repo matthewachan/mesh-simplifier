@@ -1,6 +1,7 @@
 package c2g2.geometry;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.HashMap;
 
 import org.joml.Vector3f;
@@ -47,33 +48,81 @@ public class HalfEdgeMesh {
 			Vertex v = new Vertex(i, vPos, vNorm); 
 
 			if (DEBUG)
-				System.out.println("Vertex " + (i+1) + " pos " + vPos + " norm " + vNorm);
+				System.out.println("Vertex " + (v.getId() + 1) + " pos " + vPos + " norm " + vNorm);
 
 			vertices.add(v);
 		}
 
-
-
 		//   (2) Create half edge list and set faces
+		HashMap<String, ArrayList<HalfEdge>> edges = new HashMap<>();
+
 		for (int i = 0; i < inds.length / 3; ++i) {
 			
 			if (DEBUG)
 				System.out.println("Face " + (i+1));
+
+			Face face = new Face();
+
 			// Loop through the 3 edges of the face 
 			for (int j = 0; j < 3; ++j) {
 				int idx1 = inds[3*i+j];
 				int idx2 = j == 2 ? inds[3*i] : inds[3*i+j+1];
 
-				// if (DEBUG)
-				// 	System.out.println("        Edge " + inds[3*i+j] + "-" + inds[3*i+j+1]);
+				// NOTE: Debug message is corrected for 1-index of OBJ files
+				if (DEBUG)
+					System.out.println("        Edge " + (idx1 + 1) + "-" + (idx2 + 1));
 
-				// // Correct for zero-indexing
-				// // --idx1;
-				// // --idx2;
+				Vertex v1 = vertices.get(idx1);
+				Vertex v2 = vertices.get(idx2);
 
-				// Vertex v1 = vertices.get(idx1);
-				// Vertex v2 = vertices.get(idx2);
+				// Create new half edge
+				HalfEdge he = new HalfEdge();
+				he.setNextV(v2);
+				he.setlFace(face);
+				halfEdges.add(he);
+
+				// Add to map of edges (for connecting half edge pairs)
+				String edge = idx1 < idx2 ? idx1 + "/" + idx2 : idx2 + "/" + idx1; // Sort by lowest
+
+				if (edges.containsKey(edge)) {
+					if (DEBUG)
+						System.out.println("Found pair for " + edge);
+					edges.get(edge).add(he);
+				}
+				else {
+					ArrayList<HalfEdge> list = new ArrayList<>();
+					list.add(he);
+					edges.put(edge,list);
+				}
+
+				// Update vertex and face
+				v2.setEdge(he);
+				face.setEdge(he);
 			}
+
+			// Build counter-clockwise "cycle" for each face
+			for (int j = 0; j < 3; ++j) {
+				int idx1 = 3 * i + j;
+				int idx2 = 3 * i + ((j + 1) % 3);
+				HalfEdge he = halfEdges.get(idx1);
+				HalfEdge next = halfEdges.get(idx2);
+
+				he.setNextE(next);
+			}
+		}
+		
+		//   (3) Set flip edges
+		for (Map.Entry<String, ArrayList<HalfEdge>> entry : edges.entrySet()) {
+			ArrayList<HalfEdge> pair = entry.getValue();
+			if (pair.size() == 2) {
+				HalfEdge hf1 = pair.get(0);
+				HalfEdge hf2 = pair.get(1);
+				hf1.setFlipE(hf2);
+				hf2.setFlipE(hf1);
+			}
+			// Error, there should NOT be <> 2 half edges per edge
+			else
+				System.out.println("Mesh is disconnected OR more than two faces touch a given edge");
 		}
 	}
 

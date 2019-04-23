@@ -16,7 +16,8 @@ public class HalfEdgeMesh {
 
 	private ArrayList<HalfEdge> halfEdges;
 	private ArrayList<Vertex> vertices;
-	private boolean DEBUG = true;
+	private ArrayList<Face> faces;
+	private boolean DEBUG = false;
 
 	/* TODO (part 1):
 	 *   Build HalfEdge mesh from a triangle mesh.
@@ -31,6 +32,7 @@ public class HalfEdgeMesh {
 
 		halfEdges = new ArrayList<>();
 		vertices = new ArrayList<>();
+		faces = new ArrayList<>();
 
 		// Hint: You will need multiple passes of the arrays to set up 
 		// each geometry object. A suggestion is to:
@@ -62,6 +64,7 @@ public class HalfEdgeMesh {
 				System.out.println("Face " + (i+1));
 
 			Face face = new Face();
+			faces.add(face);
 
 			// Loop through the 3 edges of the face 
 			for (int j = 0; j < 3; ++j) {
@@ -138,10 +141,42 @@ public class HalfEdgeMesh {
 	 */
 	public Mesh toMesh() {
 		// student code starts here
+		float[] positions = new float[vertices.size() * 3];
+		float[] textCoords = new float[vertices.size() * 2];
+		float[] normals = new float[vertices.size() * 3];
+		int[] indices = new int[faces.size() * 3];
 
+		// Set positions and normals
+		for (int i = 0; i < vertices.size(); ++i) {
+			Vector3f vPos = vertices.get(i).getPos();
+			Vector3f vNorm = vertices.get(i).getNorm();
+
+			positions[3*i] = vPos.x;
+			positions[3*i+1] = vPos.y;
+			positions[3*i+2] = vPos.z;
+
+			normals[3*i] = vNorm.x;
+			normals[3*i+1] = vNorm.y;
+			normals[3*i+2] = vNorm.z;
+		}
+
+		// Set faces
+		for (int i = 0; i < faces.size(); ++i) {
+			HalfEdge he = faces.get(i).getEdge();
+
+			Vertex v1 = he.getNextV();
+			Vertex v2 = he.getNextE().getNextV();
+			Vertex v3 = he.getNextE().getNextE().getNextV();
+
+			indices[3*i] = v1.getId();
+			indices[3*i+1] = v2.getId();
+			indices[3*i+2] = v3.getId();
+		}
+
+		Mesh mesh = new Mesh(positions, textCoords, normals, indices);
 
 		// Return a Mesh object instead of null
-		return null;
+		return mesh;
 	}
 
 	/* Remove the first vertex from the HalfEdgeMesh. 
@@ -198,10 +233,89 @@ public class HalfEdgeMesh {
 
 		// student code starts here
 
-
 		// Remember to update array lists with removed edges and vertices.
 		// newV already has a unique id and it will replace one of the 
 		// removed vertices.
+
+
+		// Make all edges that point to v1 point INSTEAD to newV
+		Vertex v1 = edge.getNextV();
+		collapseHalfTriFan(edge, newV);
+
+		edge.setNextV(newV);
+		newV.setEdge(edge);
+
+		vertices.add(newV);
+		vertices.remove(v1);
+
+
+
+
+		// Store half edges that need to be fixed
+		// Image reference (Figure 1)
+		HalfEdge topLeft = edge.getFlipE().getNextE().getFlipE();
+		HalfEdge botLeft = topLeft.getFlipE().getNextE();
+
+		HalfEdge botRight = edge.getNextE();
+		HalfEdge topRight = botRight.getNextE().getFlipE();
+
+
+
+		// Fix affected vertices
+		botLeft.getFlipE().getNextV().setEdge(botLeft.getFlipE());
+		botRight.getNextV().setEdge(botRight);
+
+		// Fix affected faces
+		faces.remove(botLeft.getlFace());
+		faces.remove(botRight.getlFace());
+
+		botLeft.setlFace(topLeft.getlFace());
+		botRight.setlFace(topRight.getlFace());
+
+		botLeft.getlFace().setEdge(botLeft);
+		botRight.getlFace().setEdge(botRight);
+
+
+
+
+		// Collapse v2 into newV
+		Vertex v2 = edge.getFlipE().getNextV();
+		collapseHalfTriFan(edge.getFlipE(), newV);
+
+
+
+
+		// Fix affected half edges
+		botLeft.setNextE(topLeft.getNextE());
+		topLeft.getNextE().getNextE().setNextE(botLeft);
+
+		botRight.setNextE(topRight.getNextE());
+		topRight.getNextE().getNextE().setNextE(botRight);
+		
+		// Remove affected half edges and vertices
+		vertices.remove(v2);
+
+		halfEdges.remove(topLeft.getFlipE());
+		halfEdges.remove(topLeft);
+		halfEdges.remove(topRight.getFlipE());
+		halfEdges.remove(topRight);
+		halfEdges.remove(edge.getFlipE());
+		halfEdges.remove(edge);
+
+
+
+
+		
+
+		// Clean up
+		resetVertexIds();
+	}
+
+	private void resetVertexIds() {
+		int id = 0;
+
+		for (Vertex v : vertices)
+			v.setId(id++);
 	}
 
 
@@ -220,6 +334,7 @@ public class HalfEdgeMesh {
 	private void collapseHalfTriFan(HalfEdge start, Vertex newV) {
 		HalfEdge he = start.getNextE();
 		while (he != start.getFlipE()) {
+			System.out.println(he.getNextV().getId() + "/" + start.getNextV().getId());
 			he.getFlipE().setNextV(newV);
 			he = he.getFlipE().getNextE();
 		}

@@ -90,6 +90,52 @@ public class MeshSimplifier {
         
         /* student code goes here */
 
+        // 1. For each edge
+        //    - If edge passes pre-check, then it is a valid pair, 
+        //       - Create EdgeRecord with unique id
+        //       - Add it to validPairs
+        // 2. Place all valid pairs in the priority queue
+	for (HalfEdge he : edges) {
+		if (checker.passPreCheck(he) && he.getId() == -1) {
+			EdgeRecord eRec = new EdgeRecord(he);
+			he.setId(currId);
+
+			// Generate a new vertex 
+			Vertex v = he.getNextV();
+			Vertex u = he.getFlipE().getNextV();
+			Vertex newV = u.getAverage(v);
+			newV.getNorm().normalize();
+
+			// Compute the cost of collapsing this edge pair
+			float cost = measurer.collapseCost(he, newV);
+
+			// Fill out EdgeRecord 
+			eRec.id = currId;
+			eRec.cost = cost;
+			eRec.v = newV;
+
+			validPairs.put(currId, eRec);
+			pque.add(eRec);
+
+			++currId;
+		}
+	}
+
+        // 3. Pop edges from the PQ while shouldStop() == False
+        //    - If edge passes post-check
+        //       - Collapse edge and update costs
+	
+	// while (!shouldStop()) {
+	for (int i = 0; i < 3; ++i) {
+		EdgeRecord eRec = pque.poll();
+		HalfEdge he = eRec.he;
+		Vertex newV = eRec.v;
+
+		if (checker.passPostCheck(he, newV)) {
+			collapseEdge(he, newV, currId++);
+		}
+
+	}
 
         /* student code ends here */
 
@@ -124,6 +170,8 @@ public class MeshSimplifier {
 
         HashSet<HalfEdge> edgesToUpdate = new HashSet<>();
         HalfEdge he0 = newV.getEdge();
+	if (he0.getNextV().getId() == newV.getId())
+		System.out.println("no bueno");
         HalfEdge currHe = he0;
         // get set fof vertices whose quadric is affected by deleting edge
         do {

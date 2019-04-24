@@ -263,6 +263,16 @@ public class HalfEdgeMesh {
 		resetVertexIds();
 	}
 
+	// Check if a vertex exists in our half edge mesh
+	private int checkIds(Vertex v) {
+		int cnt = 0;
+		for (HalfEdge he : halfEdges) {
+			if (he.getNextV().getId() == v.getId())
+				cnt++;
+		}
+		return cnt;
+	}
+
 	/* TODO (part 1):
 	 *   Collapse the given edge into a point.
 	 *   All edges connected to either end of edge are  connected
@@ -280,17 +290,25 @@ public class HalfEdgeMesh {
 		// removed vertices.
 
 
+		newV.setId(9999);
+
+		int count = checkIds(edge.getFlipE().getNextV());
+		if (DEBUG)
+			System.out.println("BEFORE: " + count);
+
 		// Make all edges that point to v1 point INSTEAD to newV
 		Vertex v1 = edge.getNextV();
 		collapseHalfTriFan(edge, newV);
 
+
 		edge.setNextV(newV);
-		newV.setEdge(edge.getFlipE());
 
 		vertices.add(newV);
-		vertices.remove(v1);
+		// vertices.remove(v1);
 
 
+		// count = checkIds(edge.getFlipE().getNextV());
+		// System.out.println("MIDDLE: " + count);
 
 
 		// Store half edges that need to be fixed
@@ -306,6 +324,7 @@ public class HalfEdgeMesh {
 		// Fix affected vertices
 		botLeft.getFlipE().getNextV().setEdge(botLeft);
 		botRight.getNextV().setEdge(botRight.getFlipE());
+		newV.setEdge(botRight);
 
 		// Fix affected faces
 		faces.remove(botLeft.getlFace());
@@ -335,7 +354,7 @@ public class HalfEdgeMesh {
 		topRight.getNextE().getNextE().setNextE(botRight);
 		
 		// Remove affected half edges and vertices
-		vertices.remove(v2);
+		// vertices.remove(v2);
 
 		halfEdges.remove(topLeft.getFlipE());
 		halfEdges.remove(topLeft);
@@ -345,12 +364,15 @@ public class HalfEdgeMesh {
 		halfEdges.remove(edge);
 
 
+		count = checkIds(edge.getFlipE().getNextV());
+		if (DEBUG)
+			System.out.println("AFTER: " + count);
 
-
-		
+		newV.setId(edge.getFlipE().getNextV().getId());
 
 		// Clean up
-		resetVertexIds();
+		// resetVertexIds();
+
 	}
 
 	private void resetVertexIds() {

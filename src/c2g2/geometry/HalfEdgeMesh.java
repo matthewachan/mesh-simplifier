@@ -99,7 +99,7 @@ public class HalfEdgeMesh {
 				}
 
 				// Update vertex and face
-				v2.setEdge(he);
+				v1.setEdge(he);
 				face.setEdge(he);
 			}
 
@@ -217,8 +217,50 @@ public class HalfEdgeMesh {
 		Face f2 = start.getFlipE().getlFace();
 
 		// student code starts here
+		// Keep references to half edges for fixing the mesh later
+		HalfEdge topLeft = start.getNextE().getFlipE();
+		HalfEdge botLeft = topLeft.getFlipE().getNextE();
+
+		HalfEdge botRight = start.getFlipE().getNextE();
+		HalfEdge topRight = botRight.getNextE().getFlipE();
+
+		// Delete faces
+		faces.remove(start.getlFace());
+		faces.remove(start.getFlipE().getlFace());
+
+		// Fix referenced faces
+		botLeft.setlFace(topLeft.getlFace());
+		botRight.setlFace(topRight.getlFace());
+
+		topLeft.getlFace().setEdge(botLeft);
+		topRight.getlFace().setEdge(botRight);
+
+		// Fix vertices' referenced edges
+		inheritor.setEdge(botLeft.getFlipE());
+		botLeft.getFlipE().getNextV().setEdge(botLeft);
+		botRight.getNextV().setEdge(botRight.getFlipE());
+		
+		// Collapse edges around vtx into inheritor
+		collapseHalfTriFan(start.getFlipE(), inheritor);
+
+		// Fix next edge references
+		botLeft.setNextE(topLeft.getNextE());
+		topLeft.getNextE().getNextE().setNextE(botLeft);
+
+		botRight.setNextE(topRight.getNextE());
+		topRight.getNextE().getNextE().setNextE(botRight);
+
+		// Delete vertices and half edges
+		vertices.remove(vtx);
+		halfEdges.remove(start.getFlipE());
+		halfEdges.remove(start);
+		halfEdges.remove(topLeft.getFlipE());
+		halfEdges.remove(topLeft);
+		halfEdges.remove(topRight.getFlipE());
+		halfEdges.remove(topRight);
 
 		// Remember to update array lists with removed edges and vertices.
+		resetVertexIds();
 	}
 
 	/* TODO (part 1):
@@ -243,7 +285,7 @@ public class HalfEdgeMesh {
 		collapseHalfTriFan(edge, newV);
 
 		edge.setNextV(newV);
-		newV.setEdge(edge);
+		newV.setEdge(edge.getFlipE());
 
 		vertices.add(newV);
 		vertices.remove(v1);
@@ -262,8 +304,8 @@ public class HalfEdgeMesh {
 
 
 		// Fix affected vertices
-		botLeft.getFlipE().getNextV().setEdge(botLeft.getFlipE());
-		botRight.getNextV().setEdge(botRight);
+		botLeft.getFlipE().getNextV().setEdge(botLeft);
+		botRight.getNextV().setEdge(botRight.getFlipE());
 
 		// Fix affected faces
 		faces.remove(botLeft.getlFace());
@@ -334,7 +376,6 @@ public class HalfEdgeMesh {
 	private void collapseHalfTriFan(HalfEdge start, Vertex newV) {
 		HalfEdge he = start.getNextE();
 		while (he != start.getFlipE()) {
-			System.out.println(he.getNextV().getId() + "/" + start.getNextV().getId());
 			he.getFlipE().setNextV(newV);
 			he = he.getFlipE().getNextE();
 		}

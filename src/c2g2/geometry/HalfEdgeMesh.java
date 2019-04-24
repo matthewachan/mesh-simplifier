@@ -290,11 +290,13 @@ public class HalfEdgeMesh {
 		// removed vertices.
 
 
-		newV.setId(9999);
+		// newV.setId(9999);
 
 		int count = checkIds(edge.getFlipE().getNextV());
 		if (DEBUG)
 			System.out.println("BEFORE: " + count);
+
+		System.out.println("Collapsing " + edge.getNextV().getId() + " and " + edge.getFlipE().getNextV().getId() + " into " + newV.getId());
 
 		// Make all edges that point to v1 point INSTEAD to newV
 		Vertex v1 = edge.getNextV();

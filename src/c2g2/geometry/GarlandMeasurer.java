@@ -48,6 +48,7 @@ public class GarlandMeasurer extends Measurer {
 		// Assume the edges will be collapsed at the midpoint
 		Vertex v1 = he.getNextV();
 		Vertex v2 = he.getFlipE().getNextV();
+		// System.out.println("got v1 " + v1.getId() + " and v2 " + v2.getId());
 
 		Vector3f p1 = v1.getPos();
 		Vector3f p2 = v2.getPos();
@@ -60,6 +61,13 @@ public class GarlandMeasurer extends Measurer {
 		
 		// Get the error quadric
 		Quadric q = new Quadric();
+		if (!quadMap.containsKey(v1.getId()))
+			System.out.println("Can't find " + v1.getId());
+
+		if (!quadMap.containsKey(v2.getId()))
+			System.out.println("Can't find " + v2.getId());
+				// System.out.println("no bueno");
+
 		quadMap.get(v1.getId()).add(quadMap.get(v2.getId()), q);
 
 		// cost = v^{T} * q * v
@@ -89,6 +97,13 @@ public class GarlandMeasurer extends Measurer {
 		assert (quadMap.containsKey(i1) && quadMap.containsKey(i2));
 		Quadric q = new Quadric();
 		quadMap.get(i1).add(quadMap.get(i2), q);
+		if (DEBUG)
+			System.out.println("Removing " + i1);
+		if (DEBUG)
+			System.out.println("Removing " + i2);
+		if (DEBUG)
+			System.out.println("Adding " + newV.getId());
+
 		quadMap.remove(i1);
 		quadMap.remove(i2);
 		quadMap.put(newV.getId(), q);
@@ -153,6 +168,8 @@ public class GarlandMeasurer extends Measurer {
 				System.out.println("Overwriting error quadric for existing vertex");
 			quadMap.remove(v.getId());
 		}
+		if (DEBUG)
+			System.out.println("Adding " + v.getId());
 
 		// Add the error quadric to the map
 		Quadric q = new Quadric(new Matrix3f(error), new Vector3f(error.m30(), error.m31(), error.m32()), error.m33());

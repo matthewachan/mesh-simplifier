@@ -23,7 +23,11 @@ public class GeometryChecker {
     }
 
     public boolean passPostCheck(HalfEdge he, Vertex v) {
-        return !willDegenerate(he) && checkFairness(he, v);
+	boolean flag2 = !willDegenerate(he);
+	// System.out.println("done");
+	boolean flag = checkFairness(he, v);
+	return flag && flag2;
+        // return !willDegenerate(he) && checkFairness(he, v);
     }
 
     // Return true if deleting he will produce a non-manifold
@@ -36,6 +40,7 @@ public class GeometryChecker {
         // store neighbourhood of he.getNextV() except for v0, va, vb
         for (HalfEdge curr = he.getNextE(); curr != he.getFlipE(); 
             curr = curr.getFlipE().getNextE()) {
+		// System.out.println("stuck");
             if (curr.getNextV() != v0 &&
                 curr.getNextV() != va &&
                 curr.getNextV() != vb)

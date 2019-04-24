@@ -2,6 +2,7 @@ package c2g2.geometry;
 
 import java.util.ArrayList;
 import java.lang.Comparable;
+import java.util.Map;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.PriorityQueue;
@@ -106,6 +107,8 @@ public class MeshSimplifier {
 			Vertex newV = u.getAverage(v);
 			newV.getNorm().normalize();
 
+			// System.out.println("Pair " + he.getNextV().getId() + " and " + he.getFlipE().getNextV().getId() + " into " + newV.getId());
+
 			// Compute the cost of collapsing this edge pair
 			float cost = measurer.collapseCost(he, newV);
 
@@ -120,22 +123,23 @@ public class MeshSimplifier {
 			++currId;
 		}
 	}
-
         // 3. Pop edges from the PQ while shouldStop() == False
         //    - If edge passes post-check
         //       - Collapse edge and update costs
 	
-	// while (!shouldStop()) {
-	for (int i = 0; i < 3; ++i) {
+	while (!shouldStop()) {
+	// for (int i = 0; i < 15; ++i) {
 		EdgeRecord eRec = pque.poll();
 		HalfEdge he = eRec.he;
 		Vertex newV = eRec.v;
 
-		if (checker.passPostCheck(he, newV)) {
-			collapseEdge(he, newV, currId++);
+		if (edgeInMesh(he) && checker.passPostCheck(he, newV)) {
+			int id = collapseEdge(he, newV, currId++);
+			System.out.println("ID IS " + id);
 		}
 
 	}
+
 
         /* student code ends here */
 
@@ -144,6 +148,15 @@ public class MeshSimplifier {
         System.out.println("New simplified mesh of " + mesh.getEdges().size()/3 + " faces from " + startNumOfFaces);
 
         return mesh;
+    }
+
+    // Check if a given half edge exists in the mesh
+    private boolean edgeInMesh(HalfEdge edge) {
+	    for (HalfEdge he : mesh.getEdges()) {
+		    if (edge.getId() == he.getId())
+			    return true;
+	    }
+	    return false;
     }
 
     /* Collapse edge onto newV, update affected Quadrics,
@@ -167,6 +180,15 @@ public class MeshSimplifier {
         // this updates the quadric map by adding sum of quadrics in contracted edge
         measurer.edgeCollapsed(edge.getFlipE().getNextV(), edge.getNextV(), newV);
         mesh.collapseEdge(edge, newV);
+	// Check that newV.ID and half edge vertices' IDs are correct
+	for (Map.Entry<Integer, EdgeRecord> entry : validPairs.entrySet()) {
+		EdgeRecord eRec = entry.getValue();
+		int id1 = eRec.he.getNextV().getId();
+		int id2 = eRec.he.getFlipE().getNextV().getId();
+		if (eRec.v.getId() != id1 && eRec.v.getId() != id2) {
+			eRec.v.setId(id2);
+		}
+	}
 
         HashSet<HalfEdge> edgesToUpdate = new HashSet<>();
         HalfEdge he0 = newV.getEdge();

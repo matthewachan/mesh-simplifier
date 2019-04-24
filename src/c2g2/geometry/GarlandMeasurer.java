@@ -28,7 +28,7 @@ public class GarlandMeasurer extends Measurer {
 	}
 
 	/* TODO (part 2):
-	 *   Compue the collapse cost of an edge (v0, v1) and store
+	 *   Compute the collapse cost of an edge (v0, v1) and store
 	 *   the optimal position in newV.
 	 *
 	 *   This is step (3) of algorithm in the Garland and Heckbert paper.
@@ -45,7 +45,41 @@ public class GarlandMeasurer extends Measurer {
 
 		// student code goes here 
 
-		return 0;
+		// Assume the edges will be collapsed at the midpoint
+		Vertex v1 = he.getNextV();
+		Vertex v2 = he.getFlipE().getNextV();
+
+		Vector3f p1 = v1.getPos();
+		Vector3f p2 = v2.getPos();
+
+		Vector3f midpt = new Vector3f();
+		p1.add(p2, midpt);
+		midpt.div(2);
+
+		newV.setPos(midpt);
+		
+		// Get the error quadric
+		Quadric q = new Quadric();
+		quadMap.get(v1.getId()).add(quadMap.get(v2.getId()), q);
+
+		// cost = v^{T} * q * v
+		Matrix4f error = new Matrix4f(q.Q);	
+
+		error.m30(q.b.x);
+		error.m31(q.b.y);
+		error.m32(q.b.z);
+
+		error.m03(q.b.x);
+		error.m13(q.b.y);
+		error.m23(q.b.z);
+
+		error.m33(q.d);
+
+		Vector4f v = new Vector4f(midpt, 1);
+		v.mul(error);
+		float cost = (midpt.x * v.x) + (midpt.y * v.y) + (midpt.z * v.z) + v.w;
+		
+		return cost;
 	}
 
 	/* Update quadric of newV from v0's and v1's */ 

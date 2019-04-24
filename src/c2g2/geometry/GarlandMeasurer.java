@@ -66,7 +66,6 @@ public class GarlandMeasurer extends Measurer {
 
 		if (!quadMap.containsKey(v2.getId()))
 			System.out.println("Can't find " + v2.getId());
-				// System.out.println("no bueno");
 
 		quadMap.get(v1.getId()).add(quadMap.get(v2.getId()), q);
 

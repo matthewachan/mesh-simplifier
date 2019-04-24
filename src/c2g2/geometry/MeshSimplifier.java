@@ -19,6 +19,7 @@ public class MeshSimplifier {
     private PriorityQueue<EdgeRecord> pque;
     private HashMap<Integer, EdgeRecord> validPairs;
     private int startNumOfFaces;
+    private boolean DEBUG = true;
 
     /* Helper class containing information about a valid edge inserted
      * in the minheap.
@@ -107,7 +108,9 @@ public class MeshSimplifier {
 			Vertex newV = u.getAverage(v);
 			newV.getNorm().normalize();
 
-			// System.out.println("Pair " + he.getNextV().getId() + " and " + he.getFlipE().getNextV().getId() + " into " + newV.getId());
+			// Check vertex IDs
+			// if (DEBUG)
+			// 	System.out.println("Pair " + he.getNextV().getId() + " and " + he.getFlipE().getNextV().getId() + " into " + newV.getId());
 
 			// Compute the cost of collapsing this edge pair
 			float cost = measurer.collapseCost(he, newV);
@@ -123,19 +126,27 @@ public class MeshSimplifier {
 			++currId;
 		}
 	}
+
         // 3. Pop edges from the PQ while shouldStop() == False
         //    - If edge passes post-check
         //       - Collapse edge and update costs
+	// for (int i = 0; i < 15; ++i) {
 	
 	while (!shouldStop()) {
-	// for (int i = 0; i < 15; ++i) {
 		EdgeRecord eRec = pque.poll();
 		HalfEdge he = eRec.he;
 		Vertex newV = eRec.v;
+		
+		if (!eRec.mostRecent)
+			continue;
 
-		if (edgeInMesh(he) && checker.passPostCheck(he, newV)) {
+		if (DEBUG)
+			System.out.println("DEBUG: Pulled " + he.getId() + " from the heap (" + eRec.mostRecent + ")");
+
+		if (edgeInMesh(he) && checker.passPostCheck(he, newV)) { 
+			if (DEBUG) 
+				System.out.println("DEBUG: Collapse edge " + he.getId());
 			int id = collapseEdge(he, newV, currId++);
-			System.out.println("ID IS " + id);
 		}
 
 	}
@@ -178,24 +189,31 @@ public class MeshSimplifier {
 
         // collapse edge in the measurer and mesh instance
         // this updates the quadric map by adding sum of quadrics in contracted edge
+	// Check that newV.ID and half edge vertices' IDs are correct
+	// if (DEBUG) {
+	// 	for (Map.Entry<Integer, EdgeRecord> entry : validPairs.entrySet()) {
+	// 		EdgeRecord eRec = entry.getValue();
+	// 		int id1 = eRec.he.getNextV().getId();
+	// 		int id2 = eRec.he.getFlipE().getNextV().getId();
+	// 		if (eRec.v.getId() != id1 && eRec.v.getId() != id2) {
+	// 			eRec.v.setId(id2);
+	// 		}
+	// 	}
+	// }
+	if (edge.getNextV().getId() != newV.getId() && edge.getFlipE().getNextV().getId() != newV.getId())
+		newV.setId(edge.getFlipE().getNextV().getId());
         measurer.edgeCollapsed(edge.getFlipE().getNextV(), edge.getNextV(), newV);
         mesh.collapseEdge(edge, newV);
-	// Check that newV.ID and half edge vertices' IDs are correct
-	for (Map.Entry<Integer, EdgeRecord> entry : validPairs.entrySet()) {
-		EdgeRecord eRec = entry.getValue();
-		int id1 = eRec.he.getNextV().getId();
-		int id2 = eRec.he.getFlipE().getNextV().getId();
-		if (eRec.v.getId() != id1 && eRec.v.getId() != id2) {
-			eRec.v.setId(id2);
-		}
-	}
+	
 
         HashSet<HalfEdge> edgesToUpdate = new HashSet<>();
         HalfEdge he0 = newV.getEdge();
-	if (he0.getNextV().getId() == newV.getId())
+
+	if (DEBUG && he0.getNextV().getId() == newV.getId())
 		System.out.println("no bueno");
+
         HalfEdge currHe = he0;
-        // get set fof vertices whose quadric is affected by deleting edge
+        // get set of vertices whose quadric is affected by deleting edge
         do {
             Vertex currV = currHe.getNextV();
             HalfEdge currHe0 = currV.getEdge();
@@ -232,6 +250,7 @@ public class MeshSimplifier {
                         EdgeRecord recNew = new EdgeRecord(recOld);
                         recNew.cost = measurer.collapseCost(newHe, recNew.v);
                         recOld.mostRecent = false;
+			// System.out.println("Marking " + recOld.he.getId() + " as old");
                         pque.add(recNew);
                         validPairs.put(recNew.id, recNew);
                     } else {
@@ -248,6 +267,19 @@ public class MeshSimplifier {
                 }
             }
         }
+
+	// Check that iterating over a vertex's half edges terminates
+	if (DEBUG) {
+		for (HalfEdge he : mesh.getEdges()) {
+			int cnt = 0;
+			for (HalfEdge curr = he.getNextE(); curr != he.getFlipE(); 
+					curr = curr.getFlipE().getNextE()) {
+				if (cnt++ > 1000)
+					System.out.println("ERROR: Vertex " + he.getNextV().getId() + " has a broken cycle");
+			}
+		}
+		// System.out.println("DEBUG: No broken cycles");
+	}
 
         return id;
     }

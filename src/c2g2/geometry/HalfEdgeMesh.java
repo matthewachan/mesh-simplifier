@@ -17,7 +17,7 @@ public class HalfEdgeMesh {
 	private ArrayList<HalfEdge> halfEdges;
 	private ArrayList<Vertex> vertices;
 	private ArrayList<Face> faces;
-	private boolean DEBUG = false;
+	private boolean DEBUG = true;
 
 	/* TODO (part 1):
 	 *   Build HalfEdge mesh from a triangle mesh.
@@ -292,11 +292,12 @@ public class HalfEdgeMesh {
 
 		// newV.setId(9999);
 
-		int count = checkIds(edge.getFlipE().getNextV());
-		if (DEBUG)
-			System.out.println("BEFORE: " + count);
+		// int count = checkIds(edge.getFlipE().getNextV());
+		// if (DEBUG)
+		// 	System.out.println("BEFORE: " + count);
 
-		System.out.println("Collapsing " + edge.getNextV().getId() + " and " + edge.getFlipE().getNextV().getId() + " into " + newV.getId());
+		if (DEBUG)
+			System.out.println("Collapsing " + edge.getNextV().getId() + " and " + edge.getFlipE().getNextV().getId() + " into " + newV.getId());
 
 		// Make all edges that point to v1 point INSTEAD to newV
 		Vertex v1 = edge.getNextV();
@@ -366,9 +367,9 @@ public class HalfEdgeMesh {
 		halfEdges.remove(edge);
 
 
-		count = checkIds(edge.getFlipE().getNextV());
-		if (DEBUG)
-			System.out.println("AFTER: " + count);
+		// count = checkIds(edge.getFlipE().getNextV());
+		// if (DEBUG)
+		// 	System.out.println("AFTER: " + count);
 
 		newV.setId(edge.getFlipE().getNextV().getId());
 

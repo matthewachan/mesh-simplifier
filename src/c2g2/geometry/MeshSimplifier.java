@@ -103,15 +103,7 @@ public class MeshSimplifier {
 				he.setId(currId);
 
 				// Generate a new vertex 
-				// Vertex v = he.getNextV();
-				// Vertex u = he.getFlipE().getNextV();
-				// Vertex newV = u.getAverage(v);
-				// newV.getNorm().normalize();
 				Vertex newV = new Vertex(he.getFlipE().getNextV());
-
-				// Check vertex IDs
-				// if (DEBUG)
-				// 	System.out.println("Pair " + he.getNextV().getId() + " and " + he.getFlipE().getNextV().getId() + " into " + newV.getId());
 
 				// Compute the cost of collapsing this edge pair
 				float cost = measurer.collapseCost(he, newV);
@@ -121,45 +113,38 @@ public class MeshSimplifier {
 				eRec.cost = cost;
 				eRec.v = newV;
 
-
 				validPairs.put(currId, eRec);
 				pque.add(eRec);
 
 				++currId;
 			}
 		}
-		System.out.println("Initial size : " + pque.size());
 
 		// 3. Pop edges from the PQ while shouldStop() == False
 		//    - If edge passes post-check
 		//       - Collapse edge and update costs
-		// for (int i = 0; i < 80; ++i) {
+		while (!shouldStop() && pque.size() > 0) {
 
-		while (!shouldStop()) {
-			if (pque.size() == 0) {
+			if (DEBUG && pque.size() == 0) {
 				System.out.println("Priority queue exhausted");
 				break;
 			}
 
+			// Poll the lowest cost EdgeRecord from the heap
 			EdgeRecord eRec = pque.poll();
 			
 			HalfEdge he = eRec.he;
 			Vertex newV = eRec.v;
 
+			// Skip this record if it is not the most recent
 			if (!eRec.mostRecent)
 				continue;
 
-			// System.out.println("DEBUG: Pulled " + he.getId() + " " + he.toString() + " from the heap (" + eRec.mostRecent + ")");
-
-			if (edgeInMesh(he) && checker.passPostCheck(he, newV)) { 
-				// if (DEBUG) 
-				// System.out.println("DEBUG: Collapse edge " + he.toString());
-				int id = collapseEdge(he, newV, currId++);
-			}
+			// Collapse an edge
+			if (edgeInMesh(he) && checker.passPostCheck(he, newV))
+				collapseEdge(he, newV, currId++);
 
 		}
-
-
 		/* student code ends here */
 
 		validPairs.clear();
@@ -181,8 +166,8 @@ public class MeshSimplifier {
 	/* Collapse edge onto newV, update affected Quadrics,
 	 * update costs per vertex. Note that affected edges
 	 * are reinserted into the queue as new EdgeRecords.
-# Return new id after updated edges have been added.
-*/
+	 * Return new id after updated edges have been added.
+	*/
 	private int collapseEdge(HalfEdge edge, Vertex newV, int id) {
 		// store two vertices connected to the newly created edges
 		Vertex va = edge.getNextE().getNextV();
@@ -263,25 +248,6 @@ public class MeshSimplifier {
 				}
 			}
 		}
-		// System.out.println("Added " + nAdded + " to get " + pque.size());
-
-		// Check that all half edge cycles exit
-		// for (HalfEdge he : mesh.getEdges()) {
-		// 	if (he.getNextE().getId() == 239) {
-		// 		System.out.println(he.getNextE().getId() + " Start at " + he.getNextE().toString());
-		// 		System.out.println(he.getFlipE().getId() + " Terminate at " + he.getFlipE().toString());
-		// 		// HalfEdge he = newV.getEdge().getFlipE();
-		// 		int cntr = 0;
-		// 		for (HalfEdge curr = he.getNextE(); curr != he.getFlipE(); 
-		// 				curr = curr.getFlipE().getNextE()) {
-		// 			System.out.println("Stuck " + curr.getFlipE().getNextE().toString() + " ID " + curr.getFlipE().getNextE().getId());
-		// 			// if (cntr++ > 20) {
-		// 			// 	System.out.println(curr.getFlipE().getNextE().getId() + " Stuck on : " + curr.getFlipE().getNextE().toString());
-		// 			// 	break;
-		// 			// }
-		// 				}
-		// 	}
-		// }
 
 		return id;
 	}

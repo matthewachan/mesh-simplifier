@@ -65,7 +65,6 @@ public class GarlandMeasurer extends Measurer {
 		// Compute the optimal position
 		Vector3f optimal = new Vector3f().zero();		
 		boolean solExists = solveOptimalPos(q, optimal);
-		// System.out.println(v1.getPos() + " + " + v2.getPos() + " = " + optimal);
 
 		// cost = v^{T} * q * v
 		Matrix4f error = new Matrix4f(q.Q);	
@@ -90,6 +89,7 @@ public class GarlandMeasurer extends Measurer {
 		float v2Cost = computeCost(error, p2);
 		float optimalCost = computeCost(error, optimal);
 
+		// Case 1: Optimal solution exists
 		if (solExists) {
 			// if (optimalCost > v1Cost && optimalCost > v2Cost && optimalCost > midptCost) { 
 			// 	System.out.println(optimalCost + " vs " + v1Cost + " " + v2Cost + " " + midptCost);
@@ -136,7 +136,7 @@ public class GarlandMeasurer extends Measurer {
 		inverse.m33(1);
 		inverse.invert();
 
-		// // Invert the error quadric
+		// Abandoned this version of computing the inverse...
 		// Matrix4f inverse = new Matrix4f(Qinv);
 
 		// // b^{-1} = (-1/d) * Q^{-1} * b

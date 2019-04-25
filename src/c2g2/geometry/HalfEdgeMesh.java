@@ -44,7 +44,8 @@ public class HalfEdgeMesh {
 
 		//   (1) Create vertex list
 		for (int i = 0; i < pos.length / 3; ++i) {
-			// Create new vertex object
+
+			// Create new vertex object and add to vertices list
 			Vector3f vPos = new Vector3f(pos[3*i], pos[3*i+1], pos[3*i+2]);
 			Vector3f vNorm = new Vector3f(norms[3*i], norms[3*i+1], norms[3*i+2]);
 			Vertex v = new Vertex(i, vPos, vNorm); 
@@ -57,7 +58,7 @@ public class HalfEdgeMesh {
 
 		//   (2) Create half edge list and set faces
 		HashMap<String, ArrayList<HalfEdge>> edges = new HashMap<>();
-
+		// For each face, create 3 half edges
 		for (int i = 0; i < inds.length / 3; ++i) {
 			
 			if (DEBUG)
@@ -66,7 +67,6 @@ public class HalfEdgeMesh {
 			Face face = new Face();
 			faces.add(face);
 
-			// Loop through the 3 edges of the face 
 			for (int j = 0; j < 3; ++j) {
 				int idx1 = inds[3*i+j];
 				int idx2 = j == 2 ? inds[3*i] : inds[3*i+j+1];
@@ -84,8 +84,8 @@ public class HalfEdgeMesh {
 				he.setlFace(face);
 				halfEdges.add(he);
 
-				// Add to map of edges (for connecting half edge pairs)
-				String edge = idx1 < idx2 ? idx1 + "/" + idx2 : idx2 + "/" + idx1; // Sort by lowest
+				// Add to map of edges (for connecting half edge pairs later)
+				String edge = idx1 < idx2 ? idx1 + "/" + idx2 : idx2 + "/" + idx1; // Ascending order
 
 				if (edges.containsKey(edge)) {
 					if (DEBUG)
@@ -103,7 +103,7 @@ public class HalfEdgeMesh {
 				face.setEdge(he);
 			}
 
-			// Build counter-clockwise "cycle" for each face
+			// Connect each half edge to it's forward left (a.k.a. "next") half edge
 			for (int j = 0; j < 3; ++j) {
 				int idx1 = 3 * i + j;
 				int idx2 = 3 * i + ((j + 1) % 3);
@@ -147,7 +147,7 @@ public class HalfEdgeMesh {
 		float[] normals = new float[vertices.size() * 3];
 		int[] indices = new int[faces.size() * 3];
 
-		// Set positions and normals
+		// Use vertices list to set positions and normals
 		for (int i = 0; i < vertices.size(); ++i) {
 			Vector3f vPos = vertices.get(i).getPos();
 			Vector3f vNorm = vertices.get(i).getNorm();
@@ -161,7 +161,7 @@ public class HalfEdgeMesh {
 			normals[3*i+2] = vNorm.z;
 		}
 
-		// Set faces
+		// Use faces to set indices
 		for (int i = 0; i < faces.size(); ++i) {
 			HalfEdge he = faces.get(i).getEdge();
 
@@ -218,7 +218,8 @@ public class HalfEdgeMesh {
 		Face f2 = start.getFlipE().getlFace();
 
 		// student code starts here
-		// Keep references to half edges for fixing the mesh later
+		
+		// Keep references to half edges that need to be fixed later
 		HalfEdge topLeft = start.getNextE().getFlipE();
 		HalfEdge botLeft = topLeft.getFlipE().getNextE();
 
@@ -226,8 +227,8 @@ public class HalfEdgeMesh {
 		HalfEdge topRight = botRight.getNextE().getFlipE();
 
 		// Delete faces
-		faces.remove(start.getlFace());
-		faces.remove(start.getFlipE().getlFace());
+		faces.remove(f1);
+		faces.remove(f2);
 
 		// Fix referenced faces
 		botLeft.setlFace(topLeft.getlFace());
@@ -251,8 +252,8 @@ public class HalfEdgeMesh {
 		botRight.setNextE(topRight.getNextE());
 		topRight.getNextE().getNextE().setNextE(botRight);
 
+		// Remember to update array lists with removed edges and vertices.
 		// Delete vertices and half edges
-		vertices.remove(vtx);
 		halfEdges.remove(start.getFlipE());
 		halfEdges.remove(start);
 		halfEdges.remove(topLeft.getFlipE());
@@ -260,8 +261,8 @@ public class HalfEdgeMesh {
 		halfEdges.remove(topRight.getFlipE());
 		halfEdges.remove(topRight);
 
-		// Remember to update array lists with removed edges and vertices.
-		resetVertexIds();
+		// vertices.remove(vtx);
+		// resetVertexIds();
 	}
 
 	// Check if a vertex exists in our half edge mesh
@@ -290,13 +291,6 @@ public class HalfEdgeMesh {
 		// newV already has a unique id and it will replace one of the 
 		// removed vertices.
 
-
-		// newV.setId(9999);
-
-		// int count = checkIds(edge.getFlipE().getNextV());
-		// if (DEBUG)
-		// 	System.out.println("BEFORE: " + count);
-
 		if (DEBUG)
 			System.out.println("Collapsing " + edge.getNextV().getId() + " and " + edge.getFlipE().getNextV().getId() + " into " + newV.getId());
 
@@ -304,19 +298,13 @@ public class HalfEdgeMesh {
 		Vertex v1 = edge.getNextV();
 		collapseHalfTriFan(edge, newV);
 
-
 		edge.setNextV(newV);
 
 		vertices.add(newV);
 		// vertices.remove(v1);
 
 
-		// count = checkIds(edge.getFlipE().getNextV());
-		// System.out.println("MIDDLE: " + count);
-
-
 		// Store half edges that need to be fixed
-		// Image reference (Figure 1)
 		HalfEdge topLeft = edge.getFlipE().getNextE().getFlipE();
 		HalfEdge botLeft = topLeft.getFlipE().getNextE();
 
@@ -342,10 +330,10 @@ public class HalfEdgeMesh {
 
 
 
-
 		// Collapse v2 into newV
 		Vertex v2 = edge.getFlipE().getNextV();
 		collapseHalfTriFan(edge.getFlipE(), newV);
+
 
 
 
@@ -358,8 +346,6 @@ public class HalfEdgeMesh {
 		topRight.getNextE().getNextE().setNextE(botRight);
 		
 		// Remove affected half edges and vertices
-		// vertices.remove(v2);
-
 		halfEdges.remove(topLeft.getFlipE());
 		halfEdges.remove(topLeft);
 		halfEdges.remove(topRight.getFlipE());
@@ -368,46 +354,14 @@ public class HalfEdgeMesh {
 		halfEdges.remove(edge);
 
 
-		// count = checkIds(edge.getFlipE().getNextV());
-		// if (DEBUG)
-		// 	System.out.println("AFTER: " + count);
-
 		newV.setId(edge.getFlipE().getNextV().getId());
 
-		// for (Vertex v : vertices) {
-		// 	// Check if the vertex is used by a face
-		// 	boolean flag = false;
-			
-		// 	for (HalfEdge edg : halfEdges) {
-		// 		if (edg.getNextV().getId() == v.getId()) {
-					
-		// 			// if (v.getId() == 7)
-		// 			// 	System.out.println("WTF");
-
-		// 			flag = true;
-		// 			break;
-		// 		}
-		// 	}
-
-		// 	if (flag == false) { 
-		// 		continue;
-		// 	}
-
-		// 	HalfEdge he = v.getEdge();
-		// 	for (HalfEdge curr = he.getNextE(); curr != he.getFlipE(); 
-		// 			curr = curr.getFlipE().getNextE()) {
-		// 		// System.out.println("Stuck on " + v.getId());
-		// 	}
-		// }
-
 		// Clean up
+		// vertices.remove(v2);
 		// resetVertexIds();
-
-		// if (newV.getId() == 8909)
-		// 	System.out.println("This is the one!");
-		
 	}
 
+	// NOTE: Do not use, will cause problems in Part 2
 	private void resetVertexIds() {
 		int id = 0;
 

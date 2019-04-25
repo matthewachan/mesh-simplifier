@@ -127,6 +127,7 @@ public class HalfEdgeMesh {
 			else
 				System.out.println("Mesh is disconnected OR more than two faces touch a given edge");
 		}
+
 	}
 
 	/* TODO (part 1):

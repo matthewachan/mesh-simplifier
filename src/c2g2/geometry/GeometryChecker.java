@@ -37,19 +37,10 @@ public class GeometryChecker {
         Vertex vb = he.getFlipE().getNextE().getNextV();
 
         HashSet<Vertex> ns = new HashSet<>();
-        // store neighbourhood of he.getNextV() except for v0, va, vb
-	// System.out.println(he.getNextE().getId() + " Start at " + he.getNextE().toString());
-	// System.out.println(he.getFlipE().getId() + " Terminate at " + he.getFlipE().toString());
-	// boolean printed = false;
-	// int cntr = 0;
 
+        // store neighbourhood of he.getNextV() except for v0, va, vb
 	for (HalfEdge curr = he.getNextE(); curr != he.getFlipE(); 
 			curr = curr.getFlipE().getNextE()) {
-		// if (cntr++ > 20 && cntr < 30 && !printed) {
-		// 	// printed = true;
-		// 	System.out.println(curr.getId() + " " + curr.toString());
-		// }
-		
 		
 		if (curr.getNextV() != v0 &&
 				curr.getNextV() != va &&

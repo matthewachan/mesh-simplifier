@@ -65,7 +65,7 @@ public class GarlandMeasurer extends Measurer {
 		// Compute the optimal position
 		Vector3f optimal = new Vector3f().zero();		
 		boolean solExists = solveOptimalPos(q, optimal);
-		System.out.println(v1.getPos() + " + " + v2.getPos() + " = " + optimal);
+		// System.out.println(v1.getPos() + " + " + v2.getPos() + " = " + optimal);
 
 		// cost = v^{T} * q * v
 		Matrix4f error = new Matrix4f(q.Q);	
@@ -90,8 +90,12 @@ public class GarlandMeasurer extends Measurer {
 		float v2Cost = computeCost(error, p2);
 		float optimalCost = computeCost(error, optimal);
 
-		// Case 1: Optimal solution exists
 		if (solExists) {
+			// if (optimalCost > v1Cost && optimalCost > v2Cost && optimalCost > midptCost) { 
+			// 	System.out.println(optimalCost + " vs " + v1Cost + " " + v2Cost + " " + midptCost);
+			// 	System.out.println("Should not happen...");
+			// }
+
 			newV.setPos(optimal);
 			return optimalCost;
 		}
@@ -122,21 +126,29 @@ public class GarlandMeasurer extends Measurer {
 			return false;
 
 		// Invert the quadric's components
-		Matrix3f Qinv = new Matrix3f();
-		Q.invert(Qinv);
+		Matrix3f Qinv = new Matrix3f(Q);
+		Qinv.invert();
 
-		// b^{-1} = (-1/d) * Q^{-1} * b
-		Vector3f bInv = new Vector3f();
-		b.mul(Qinv, bInv);
-		bInv.mul(-1 / d);
+		Matrix4f inverse = new Matrix4f(Q);
+		inverse.m30(b.x);
+		inverse.m31(b.y);
+		inverse.m32(b.z);
+		inverse.m33(1);
+		inverse.invert();
 
-		// Invert the error quadric
-		Matrix4f inverse = new Matrix4f(Qinv);
+		// // Invert the error quadric
+		// Matrix4f inverse = new Matrix4f(Qinv);
 
-		inverse.m30(bInv.x);
-		inverse.m31(bInv.y);
-		inverse.m32(bInv.z);
-		inverse.m33(1 / d);
+		// // b^{-1} = (-1/d) * Q^{-1} * b
+		// Vector3f bInv = new Vector3f(b);
+		// bInv.mul(-1 / d);
+		// bInv.mul(Qinv);
+
+
+		// inverse.m30(bInv.x);
+		// inverse.m31(bInv.y);
+		// inverse.m32(bInv.z);
+		// inverse.m33(1);
 
 		// Multiply the inverted error quadric by a homogenous coordinate to get the solution
 		Vector4f pos = new Vector4f().zero();
@@ -189,7 +201,6 @@ public class GarlandMeasurer extends Measurer {
 	 */
 	private void updateQuadric(Vertex v) {
 		// student code goes here
-
 		Matrix4f error = new Matrix4f().zero();
 
 		HalfEdge start = v.getEdge();
@@ -199,28 +210,46 @@ public class GarlandMeasurer extends Measurer {
 			Face face = he.getlFace();
 			Vector3f norm = face.getNormal();
 
+			// Debug all of the triangle vertices
+			HalfEdge he1 = he;
+			Vector3f p1 = he.getNextV().getPos();
+
+			HalfEdge he2 = he.getNextE();
+			Vector3f p2 = he2.getNextV().getPos();	
+
+			HalfEdge he3 = he.getNextE().getNextE();
+			Vector3f p3 = he3.getNextV().getPos();
+
 			// ax + by + cz + d = (p1 - p2) * nhat
 			float a = norm.x;
 			float b = norm.y;
 			float c = norm.z;
 
 			// d = -(ax2 + by2 + cz2)
-			Vector3f p2 = he.getFlipE().getNextV().getPos();	
 			float d = -(a * p2.x + b * p2.y + c * p2.z);
+
+			// // Something is wrong with the face normal here...
+			if (Math.abs(p1.x * a + p1.y * b + p1.z * c + d) > 0.00001 ||
+					Math.abs(p2.x * a + p2.y * b + p2.z * c + d) > 0.00001 ||
+					Math.abs(p3.x * a + p3.y * b + p3.z * c + d) > 0.00001)
+				System.out.println("ERROR: Face normal is wrong");
 
 			Matrix4f Kp = new Matrix4f().zero();
 
 			Kp.m00(a * a);
 			Kp.m01(a * b);
 			Kp.m02(a * c);
+			Kp.m03(a * d);
 
 			Kp.m10(b * a);
 			Kp.m11(b * b);
 			Kp.m12(b * c);
+			Kp.m13(b * d);
 
 			Kp.m20(c * a);
 			Kp.m21(c * b);
 			Kp.m22(c * c);
+			Kp.m23(c * d);
 
 			Kp.m30(d * a);
 			Kp.m31(d * b);
@@ -240,6 +269,10 @@ public class GarlandMeasurer extends Measurer {
 		}
 		if (DEBUG)
 			System.out.println("Adding " + v.getId());
+
+		// error.m03(0);
+		// error.m13(0);
+		// error.m23(0);
 
 		// Add the error quadric to the map
 		Quadric q = new Quadric(new Matrix3f(error), new Vector3f(error.m30(), error.m31(), error.m32()), error.m33());

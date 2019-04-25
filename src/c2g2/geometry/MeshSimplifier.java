@@ -130,7 +130,7 @@ public class MeshSimplifier {
         // 3. Pop edges from the PQ while shouldStop() == False
         //    - If edge passes post-check
         //       - Collapse edge and update costs
-	// for (int i = 0; i < 15; ++i) {
+	// for (int i = 0; i < 80; ++i) {
 	
 	while (!shouldStop()) {
 		EdgeRecord eRec = pque.poll();
@@ -145,7 +145,7 @@ public class MeshSimplifier {
 		// System.out.println("DEBUG: Pulled " + he.toString());
 		if (edgeInMesh(he) && checker.passPostCheck(he, newV)) { 
 			// if (DEBUG) 
-			// 	System.out.println("DEBUG: Collapse edge " + he.getId());
+			System.out.println("DEBUG: Collapse edge " + he.toString());
 			int id = collapseEdge(he, newV, currId++);
 		}
 
@@ -203,7 +203,7 @@ public class MeshSimplifier {
 	if (edge.getNextV().getId() != newV.getId() && edge.getFlipE().getNextV().getId() != newV.getId())
 		newV.setId(edge.getFlipE().getNextV().getId());
 
-	System.out.println("DEBUG: Collapsing " + edge.toString() + " into " + newV.getId());
+	// System.out.println("DEBUG: Collapsing " + edge.toString() + " into " + newV.getId());
 
         measurer.edgeCollapsed(edge.getFlipE().getNextV(), edge.getNextV(), newV);
         mesh.collapseEdge(edge, newV);

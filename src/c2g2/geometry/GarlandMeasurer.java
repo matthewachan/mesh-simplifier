@@ -48,17 +48,10 @@ public class GarlandMeasurer extends Measurer {
 		// Assume the edges will be collapsed at the midpoint
 		Vertex v1 = he.getNextV();
 		Vertex v2 = he.getFlipE().getNextV();
-		// System.out.println("got v1 " + v1.getId() + " and v2 " + v2.getId());
 
 		Vector3f p1 = v1.getPos();
 		Vector3f p2 = v2.getPos();
 
-		Vector3f midpt = new Vector3f();
-		p1.add(p2, midpt);
-		midpt.div(2);
-
-		newV.setPos(midpt);
-		
 		// Get the error quadric
 		Quadric q = new Quadric();
 		if (!quadMap.containsKey(v1.getId()))
@@ -68,6 +61,11 @@ public class GarlandMeasurer extends Measurer {
 			System.out.println("Can't find " + v2.getId());
 
 		quadMap.get(v1.getId()).add(quadMap.get(v2.getId()), q);
+
+		// Compute the optimal position
+		Vector3f optimal = new Vector3f().zero();		
+		boolean solExists = solveOptimalPos(q, optimal);
+		System.out.println(v1.getPos() + " + " + v2.getPos() + " = " + optimal);
 
 		// cost = v^{T} * q * v
 		Matrix4f error = new Matrix4f(q.Q);	
@@ -82,10 +80,83 @@ public class GarlandMeasurer extends Measurer {
 
 		error.m33(q.d);
 
-		Vector4f v = new Vector4f(midpt, 1);
+
+		Vector3f midpt = new Vector3f();
+		p1.add(p2, midpt);
+		midpt.div(2);
+
+		float midptCost = computeCost(error, midpt);
+		float v1Cost = computeCost(error, p1);
+		float v2Cost = computeCost(error, p2);
+		float optimalCost = computeCost(error, optimal);
+
+		// Case 1: Optimal solution exists
+		if (solExists) {
+			newV.setPos(optimal);
+			return optimalCost;
+		}
+
+		// Case 2: No optimal solution, pick best amongst v1, v2 and midpoint
+		if (v1Cost <= midptCost && v1Cost <= v2Cost) {
+			newV.setPos(p1);
+			return v1Cost;
+		} else if (v2Cost <= v1Cost && v2Cost <= midptCost) {
+			newV.setPos(p2);
+			return v2Cost;
+		} else {
+			newV.setPos(midpt);
+			return midptCost;
+		}
+	}
+
+
+	// Take a quadric and an empty Vector3 and return whether there is an optimal solution
+	// If a solution exists, write the solution to Vector3
+	private boolean solveOptimalPos(Quadric error, Vector3f solution) {
+		Matrix3f Q = error.Q;
+		Vector3f b = error.b;
+		float d = error.d;
+
+		// Check if the matrix is invertible
+		if (Q.determinant() == 0 || d == 0)
+			return false;
+
+		// Invert the quadric's components
+		Matrix3f Qinv = new Matrix3f();
+		Q.invert(Qinv);
+
+		// b^{-1} = (-1/d) * Q^{-1} * b
+		Vector3f bInv = new Vector3f();
+		b.mul(Qinv, bInv);
+		bInv.mul(-1 / d);
+
+		// Invert the error quadric
+		Matrix4f inverse = new Matrix4f(Qinv);
+
+		inverse.m30(bInv.x);
+		inverse.m31(bInv.y);
+		inverse.m32(bInv.z);
+		inverse.m33(1 / d);
+
+		// Multiply the inverted error quadric by a homogenous coordinate to get the solution
+		Vector4f pos = new Vector4f().zero();
+		pos.w = 1; // Initialize homogeneous coordinate [0 0 0 1]
+		pos.mul(inverse);
+
+		// Write the solution
+		solution.x = pos.x;
+		solution.y = pos.y;
+		solution.z = pos.z;
+
+		return true;
+	}
+
+	// Computes cost = pt^{T} * error * pt
+	private float computeCost(Matrix4f error, Vector3f pt) {
+		Vector4f v = new Vector4f(pt, 1);
 		v.mul(error);
-		float cost = (midpt.x * v.x) + (midpt.y * v.y) + (midpt.z * v.z) + v.w;
-		
+		float cost = (pt.x * v.x) + (pt.y * v.y) + (pt.z * v.z) + v.w;
+
 		return cost;
 	}
 

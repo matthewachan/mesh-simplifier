@@ -17,7 +17,7 @@ public class HalfEdgeMesh {
 	private ArrayList<HalfEdge> halfEdges;
 	private ArrayList<Vertex> vertices;
 	private ArrayList<Face> faces;
-	private boolean DEBUG = true;
+	private boolean DEBUG = false;
 
 	/* TODO (part 1):
 	 *   Build HalfEdge mesh from a triangle mesh.
@@ -373,9 +373,38 @@ public class HalfEdgeMesh {
 
 		newV.setId(edge.getFlipE().getNextV().getId());
 
+		// for (Vertex v : vertices) {
+		// 	// Check if the vertex is used by a face
+		// 	boolean flag = false;
+			
+		// 	for (HalfEdge edg : halfEdges) {
+		// 		if (edg.getNextV().getId() == v.getId()) {
+					
+		// 			// if (v.getId() == 7)
+		// 			// 	System.out.println("WTF");
+
+		// 			flag = true;
+		// 			break;
+		// 		}
+		// 	}
+
+		// 	if (flag == false) { 
+		// 		continue;
+		// 	}
+
+		// 	HalfEdge he = v.getEdge();
+		// 	for (HalfEdge curr = he.getNextE(); curr != he.getFlipE(); 
+		// 			curr = curr.getFlipE().getNextE()) {
+		// 		// System.out.println("Stuck on " + v.getId());
+		// 	}
+		// }
+
 		// Clean up
 		// resetVertexIds();
 
+		// if (newV.getId() == 8909)
+		// 	System.out.println("This is the one!");
+		
 	}
 
 	private void resetVertexIds() {

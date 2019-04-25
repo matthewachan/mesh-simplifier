@@ -11,7 +11,7 @@ import org.joml.Vector4f;
 
 /* Computes quadrics of vertices and cost of edges */
 public class GarlandMeasurer extends Measurer {
-	private boolean DEBUG = true;
+	private boolean DEBUG = false;
 
 	/* Create measurer for the given mesh.
 	 * Stores quadrics in quadMap using vertex ids as keys.

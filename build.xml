@@ -11,7 +11,7 @@
     <!-- EXECUTION TAGS -->
     <property name="debug" value="false" />
     <property name="verbose" value="false" />
-    <property name="arg0" value="src/resources/models/cube.obj" />
+    <property name="arg0" value="src/resources/models/sphere.obj" />
     <property name="arg1" value="0.5" />
 
     <path id="class.path">
